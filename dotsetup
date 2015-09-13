@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# A shell script to clone and symlink dotfiles from a specified git repository
+# A shell script to clone and symlink dotfiles from a git repository
 # License: MIT
 # Copyright (c) 2015 rcn
 
@@ -21,7 +21,7 @@ dotfiles() { # {{{
 
     local prog="$1"
 
-    cd $localrepo
+    cd "$localrepo" || exit 1
     case $prog in
         git)    dotfiles=( .gitconfig ) ;;
         mutt)   dotfiles=( .mutt/* ) ;;
@@ -36,7 +36,7 @@ dotfiles() { # {{{
 # simple has function to use in conditions
 has() { # {{{
 
-    if hash $1 2> /dev/null; then
+    if hash "$1" 2> /dev/null; then
         return 0
     else
         return 1
@@ -49,7 +49,7 @@ clonerepo() { # {{{
 
     if has git; then
         if [ ! -d "$localrepo" ]; then
-            git clone $gitrepo $localrepo
+            git clone "$gitrepo" "$localrepo"
         else
             printf "%s\n" "Folder \"$localrepo\" already exists. Cloning aborted."
             exit 1
@@ -69,7 +69,7 @@ progcheck() { # {{{
 
     # generate list of programs to check
     programs=( curl fzf git mc mutt screen tmux vim zsh )
-    xprograms=( compton dunst feh firefox i3 mpv rofi urxvt zathura )
+    # xprograms=( compton dunst feh firefox i3 mpv rofi urxvt zathura )
 
     # when running X check for X-programs aswell
     # if [ -n "$DISPLAY" ]; then
@@ -81,13 +81,13 @@ progcheck() { # {{{
 
     mode=$1
     [ "$mode" = "display" ] && printf "Checking for programs in \$PATH:\n\n"
-    for i in ${programs[@]}
+    for prog in "${programs[@]}"
     do
-        if has $i; then
-            [ "$mode" = "display" ] && printf '[ \e[1;32m%s\e[m ] %s\n' "OK" "$i"
-            [ "$mode" = "installed" ] && printf '%s\n' "$i"
+        if has "$prog"; then
+            [ "$mode" = "display" ] && printf '[ \e[1;32m%s\e[m ] %s\n' "OK" "$prog"
+            [ "$mode" = "installed" ] && printf '%s\n' "$prog"
         else 
-            [ "$mode" = "display" ] && printf '[ \e[1;31m%s\e[m ] %s\n' "--" "$i"
+            [ "$mode" = "display" ] && printf '[ \e[1;31m%s\e[m ] %s\n' "--" "$prog"
         fi
     done
     [ "$mode" = "display" ] && printf "\n"
@@ -105,12 +105,12 @@ symlink() { # {{{
         # printf "%s\n" "No dotfiles for \"$prog\" available. Skipping ..."
         return
     else
-        for dotfile in ${dotfiles[@]}; do
+        for dotfile in "${dotfiles[@]}"; do
 
-            if [ ! -e ${HOME}/$dotfile ] ; then
-                dotdir=$(dirname ${HOME}/${dotfile})
+            if [ ! -e "${HOME}/${dotfile}" ] ; then
+                dotdir=$(dirname "${HOME}/${dotfile}")
                 [ -d "$dotdir" ] || mkdir -pv "$dotdir"
-                ln -vs ${localrepo}/$dotfile ${HOME}/$dotfile
+                ln -vs "${localrepo}/$dotfile" "${HOME}/$dotfile"
             else
                 printf "%s\n" "${HOME}/$dotfile already exists. Skipping ..." >&2
             fi
@@ -127,7 +127,11 @@ vimpluginstall() { # {{{
 
     if has vim; then
         if [[ -L ${HOME}/.vimrc ]]; then
-            [[ -d ${vimfolder}/plugged ]] && vim -c "PlugUpdate|qall" || vim -c "PlugInstall|qall"
+            if [[ -d ${vimfolder}/plugged ]]; then
+                vim -c "PlugUpdate|qall"
+            else
+                vim -c "PlugInstall|qall"
+            fi
         elif [[ -f ${HOME}/.vimrc ]]; then
             printf "%s\n" ".vimrc doesn't seem to be linked from \"$localrepo\""
             printf "%s\n" "Exiting ..."
@@ -146,7 +150,7 @@ vimpluginstall() { # {{{
 
 # print help screen
 printhelp() { # {{{
-    printf "%s\n" "usage: $(basename $0) [options]"
+    printf "%s\n" "usage: $(basename "$0") [options]"
     printf "\n"
     printf "%s\n" "  -a   symlink dotfiles for all installed programs"
     printf "%s\n" "  -c   clone git repository"
@@ -166,8 +170,8 @@ while getopts ":achtv" opt; do
             
             # create an array of installed programs
             installed=( $(progcheck installed) )
-            for prog in ${installed[@]}; do
-                symlink $prog
+            for prog in "${installed[@]}"; do
+                symlink "$prog"
                 [[ $prog == vim ]] && vimpluginstall
                 # [[ $prog == zsh ]] && exec zsh
             done
