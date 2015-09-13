@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+
+# A shell script to clone and symlink dotfiles from a specified git repository
+# License: MIT
+# Copyright (c) 2015 rcn
+
+# set shell options
+shopt -s nullglob
+shopt -s dotglob
+
+# variables
+gitrepo="git@github.com:bitcrush/dotfiles.git"
+localrepo="${HOME}/dotfiles.git"
+vimfolder="${HOME}/.vim"
+
+# create an array of dotfiles used by a specified program
+# this is used to connect dotfiles to programs
+# takes one argument: the name of the program
+# returns an array of dotfiles
+dotfiles() { # {{{
+
+    local prog="$1"
+
+    cd $localrepo
+    case $prog in
+        git)    dotfiles=( .gitconfig ) ;;
+        mutt)   dotfiles=( .mutt/* ) ;;
+        screen) dotfiles=( .screenrc ) ;;
+        tmux)   dotfiles=( .tmux.conf ) ;;
+        vim)    dotfiles=( .vimrc ) ;;
+        zsh)    dotfiles=( .zshenv .config/zsh/* ) ;;
+        *)      dotfiles=( ) ;;
+    esac
+} # }}}
+
+# simple has function to use in conditions
+has() { # {{{
+
+    if hash $1 2> /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+
+} # }}}
+
+# clone git repository
+clonerepo() { # {{{
+
+    if has git; then
+        if [ ! -d "$localrepo" ]; then
+            git clone $gitrepo $localrepo
+        else
+            printf "%s\n" "Folder \"$localrepo\" already exists. Cloning aborted."
+            exit 1
+        fi
+    else
+        printf "%s\n" "Program \"git\" not found."
+        exit 1
+    fi
+
+} # }}}
+
+# check for installed X- and non-X-programs
+# takes one argument:
+#   display     displays a list of found/not found programs
+#   installed   creates multiline output for array building
+progcheck() { # {{{
+
+    # generate list of programs to check
+    programs=( curl fzf git mc mutt screen tmux vim zsh )
+    xprograms=( compton dunst feh firefox i3 mpv rofi urxvt zathura )
+
+    # when running X check for X-programs aswell
+    # if [ -n "$DISPLAY" ]; then
+    #     programs+=( "${xprograms[@]}" )
+    # fi
+
+    # sort programs array - requires bash version >= 4
+    readarray -t programs < <(printf '%s\0' "${programs[@]}" | sort -z | uniq -z | xargs -0n1)
+
+    mode=$1
+    [ "$mode" = "display" ] && printf "Checking for programs in \$PATH:\n\n"
+    for i in ${programs[@]}
+    do
+        if has $i; then
+            [ "$mode" = "display" ] && printf '[ \e[1;32m%s\e[m ] %s\n' "OK" "$i"
+            [ "$mode" = "installed" ] && printf '%s\n' "$i"
+        else 
+            [ "$mode" = "display" ] && printf '[ \e[1;31m%s\e[m ] %s\n' "--" "$i"
+        fi
+    done
+    [ "$mode" = "display" ] && printf "\n"
+
+} # }}}
+
+# create symlinks to config files
+# loops over array created by dotfiles()
+symlink() { # {{{
+
+    local prog="$1"
+    dotfiles "$prog"
+
+    if (( ${#dotfiles[@]} == 0 )); then
+        # printf "%s\n" "No dotfiles for \"$prog\" available. Skipping ..."
+        return
+    else
+        for dotfile in ${dotfiles[@]}; do
+
+            if [ ! -e ${HOME}/$dotfile ] ; then
+                dotdir=$(dirname ${HOME}/${dotfile})
+                [ -d "$dotdir" ] || mkdir -pv "$dotdir"
+                ln -vs ${localrepo}/$dotfile ${HOME}/$dotfile
+            else
+                printf "%s\n" "${HOME}/$dotfile already exists. Skipping ..." >&2
+            fi
+
+        done
+    fi
+
+} # }}}
+
+# install/update plugins via VimPlug
+vimpluginstall() { # {{{
+
+    [[ -d ${vimfolder}/autoload ]] || mkdir -p "${vimfolder}/autoload"
+
+    if has vim; then
+        if [[ -L ${HOME}/.vimrc ]]; then
+            [[ -d ${vimfolder}/plugged ]] && vim -c "PlugUpdate|qall" || vim -c "PlugInstall|qall"
+        elif [[ -f ${HOME}/.vimrc ]]; then
+            printf "%s\n" ".vimrc doesn't seem to be linked from \"$localrepo\""
+            printf "%s\n" "Exiting ..."
+            exit 1
+        else
+            printf "%s\n" ".vimrc doesn't seem to be linked from \"$localrepo\""
+            printf "%s\n" "Exiting ..."
+            exit 1
+        fi
+    else
+        printf "%s\n" "Program \"vim\" not found."
+        exit 1
+    fi
+
+} # }}}
+
+# print help screen
+printhelp() { # {{{
+    printf "%s\n" "usage: $(basename $0) [options]"
+    printf "\n"
+    printf "%s\n" "  -a   symlink dotfiles for all installed programs"
+    printf "%s\n" "  -c   clone git repository"
+    printf "%s\n" "  -h   print this screen"
+    printf "%s\n" "  -t   print a list of installed programs"
+    printf "%s\n" "  -v   install or update vim plugins"
+    printf "\n"
+} # }}}
+
+# parse program parameters
+while getopts ":achtv" opt; do
+    case $opt in
+        a)
+            # clone from git
+            [[ -d $localrepo ]] || clonerepo
+            
+            # create an array of installed programs
+            installed=( $(progcheck installed) )
+            for prog in ${installed[@]}; do
+                symlink $prog
+                [[ $prog == vim ]] && vimpluginstall
+                # [[ $prog == zsh ]] && exec zsh
+            done
+            ;;
+        c)
+            clonerepo
+            ;;
+        h)
+            printhelp
+            ;;
+        t)
+            progcheck display
+            ;;
+        v)
+            vimpluginstall
+            ;;
+        *)
+            printf "%s\n" "Option required. Valid options are:" >&2
+            printhelp >&2
+            exit 1
+            ;;
+    esac
+done
+
