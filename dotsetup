@@ -157,6 +157,7 @@ printhelp() { # {{{
 } # }}}
 
 # parse program parameters
+[[ $# == 0 ]] && printhelp
 while getopts ":achtv" opt; do
     case $opt in
         a)
