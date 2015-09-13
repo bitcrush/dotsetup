@@ -9,7 +9,7 @@ shopt -s nullglob
 shopt -s dotglob
 
 # variables
-gitrepo="git@github.com:bitcrush/dotfiles.git"
+gitrepo="https://github.com/bitcrush/dotsetup.git"
 localrepo="${HOME}/dotfiles.git"
 vimfolder="${HOME}/.vim"
 
