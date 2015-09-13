@@ -1,5 +1,5 @@
 # dotsetup
-A shell script to clone and symlink dotfiles from a specified git repository
+A shell script to clone and symlink dotfiles from a git repository
 
 ## quick install
 
@@ -35,7 +35,7 @@ curl -sSL http://git.io/rcndots -o dotsetup && chmod +x dotsetup
 ./dotsetup -t
 ```
 
-### Install missing programs
+### Install missing/desired programs
 Depending on your distribution run f.e.:
 ```bash
 # For Arch Linux based distributions
@@ -48,22 +48,21 @@ apt-get update && apt-get install git tmux vim zsh
 yum update && yum install git tmux vim zsh
 ```
 
-### Clone dotfiles repo and try to symlink the config files for each installed program
+### Clone dotfiles repo and try to symlink the config files for all installed programs
 ```bash
 ./dotsetup -a
 ```
 
-### Run zsh shell and make default it the default
+### Run zsh and make it the default shell
 f.e.:
 ```bash
 exec zsh
 sudo chsh -s /bin/zsh [username]
 ```
 
-
 ## TODO
 
-[ ] add more arrays to dotfiles()
-[ ] add a flags to overwrite/backup existing dotfiles
-    [ ] add interactive confirmation switch
+- [ ] add more arrays to dotfiles()
+- [ ] add a flag to overwrite/backup existing dotfiles
+    - [ ] add interactive confirmation switch
 
