@@ -36,7 +36,7 @@ curl -sSL http://git.io/rcndots -o dotsetup && chmod +x dotsetup
 ```
 
 ### Install missing programs
-Depending on your distributions run f.e.:
+Depending on your distribution run f.e.:
 ```bash
 # For Arch Linux based distributions
 pacman -Sy git tmux vim zsh
@@ -59,4 +59,11 @@ f.e.:
 exec zsh
 sudo chsh -s /bin/zsh [username]
 ```
+
+
+## TODO
+
+[ ] add more arrays to dotfiles()
+[ ] add a flags to overwrite/backup existing dotfiles
+    [ ] add interactive confirmation switch
 
