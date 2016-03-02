@@ -86,7 +86,7 @@ progcheck() { # {{{
         if has "$prog"; then
             [ "$mode" = "display" ] && printf '[ \e[1;32m%s\e[m ] %s\n' "OK" "$prog"
             [ "$mode" = "installed" ] && printf '%s\n' "$prog"
-        else 
+        else
             [ "$mode" = "display" ] && printf '[ \e[1;31m%s\e[m ] %s\n' "--" "$prog"
         fi
     done
@@ -110,7 +110,11 @@ symlink() { # {{{
             if [ ! -e "${HOME}/${dotfile}" ] ; then
                 dotdir=$(dirname "${HOME}/${dotfile}")
                 [ -d "$dotdir" ] || mkdir -pv "$dotdir"
-                ln -vs "${localrepo}/$dotfile" "${HOME}/$dotfile"
+                if [ "$dotfile" =~ "\.local" ]; then
+                    cp -v "${localrepo}/$dotfile" "${HOME}/$dotfile"
+                else
+                    ln -vs "${localrepo}/$dotfile" "${HOME}/$dotfile"
+                fi
             else
                 printf "%s\n" "${HOME}/$dotfile already exists. Skipping ..." >&2
             fi
@@ -167,7 +171,7 @@ while getopts ":achtv" opt; do
         a)
             # clone from git
             [[ -d $localrepo ]] || clonerepo
-            
+
             # create an array of installed programs
             installed=( $(progcheck installed) )
             for prog in "${installed[@]}"; do
