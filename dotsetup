@@ -23,11 +23,11 @@ dotfiles() { # {{{
 
     cd "$localrepo" || exit 1
     case $prog in
-        git)    dotfiles=( .gitconfig ) ;;
+        git)    dotfiles=( .gitconfig* ) ;;
         mutt)   dotfiles=( .mutt/* ) ;;
         screen) dotfiles=( .screenrc ) ;;
-        tmux)   dotfiles=( .tmux.conf ) ;;
-        vim)    dotfiles=( .vimrc ) ;;
+        tmux)   dotfiles=( .tmux*.conf ) ;;
+        vim)    dotfiles=( .vim/vimrc* ) ;;
         zsh)    dotfiles=( .zshenv .config/zsh/* ) ;;
         *)      dotfiles=( ) ;;
     esac
@@ -110,7 +110,7 @@ symlink() { # {{{
             if [ ! -e "${HOME}/${dotfile}" ] ; then
                 dotdir=$(dirname "${HOME}/${dotfile}")
                 [ -d "$dotdir" ] || mkdir -pv "$dotdir"
-                if [ "$dotfile" =~ "\.local" ]; then
+                if [[ "$dotfile" =~ ".local" ]]; then
                     cp -v "${localrepo}/$dotfile" "${HOME}/$dotfile"
                 else
                     ln -vs "${localrepo}/$dotfile" "${HOME}/$dotfile"
